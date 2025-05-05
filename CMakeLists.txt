@@ -4,3 +4,4 @@ project(chip-8-emulator-c VERSION 0.1.0 LANGUAGES C)
 add_subdirectory(external)
 
 add_executable(chip-8-emulator-c main.c)
+target_link_libraries(chip-8-emulator-c external)
