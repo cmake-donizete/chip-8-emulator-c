@@ -1,0 +1,2 @@
+add_library(lifecycle INTERFACE)
+target_include_directories(lifecycle INTERFACE include)
