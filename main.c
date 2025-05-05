@@ -8,7 +8,15 @@ void emulator_lifecycle_init(void **appstate, int argc, char *argv[])
 void emulator_lifecycle_iterate(void *appstate)
 {
     emulator_display_clear();
-    emulator_display_draw_pixel(100, 100, 0xFF, 0, 0);
+
+    for (uint16_t x = 0; x < 320; x++)
+    {
+        for (uint16_t y = 0; y < 240; y++)
+        {
+            emulator_display_draw_pixel(x, y, x + y, x * y, x - y);
+        }
+    }
+
     emulator_display_refresh();
 }
 
