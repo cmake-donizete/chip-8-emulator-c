@@ -1,7 +1,12 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 
+#ifndef WINDOW_WIDTH
 #define WINDOW_WIDTH 1920
+#endif
+
+#ifndef WINDOW_HEIGHT
 #define WINDOW_HEIGHT 1080
+#endif
 
 #define RENDERER_WIDTH 320
 #define RENDERER_HEIGHT 240
