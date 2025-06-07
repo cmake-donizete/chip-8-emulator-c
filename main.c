@@ -7,8 +7,6 @@
 #include <emulator/display.h>
 
 #define CHIP_8_PROGRAM_START 0x200
-#define CHIP_8_WIDTH 64
-#define CHIP_8_HEIGHT 32
 
 struct chip_8_t
 {
@@ -49,9 +47,9 @@ void emulator_lifecycle_iterate(void *appstate)
 {
     emulator_display_clear();
 
-    for (uint16_t x = 0; x < 320; x++)
+    for (uint16_t x = 0; x < RENDER_WIDTH; x++)
     {
-        for (uint16_t y = 0; y < 240; y++)
+        for (uint16_t y = 0; y < RENDER_HEIGHT; y++)
         {
             emulator_display_draw_pixel(x, y, x + y, x * y, x - y);
         }
