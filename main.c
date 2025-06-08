@@ -11,6 +11,7 @@
 #define CHIP_8_FONT_START       0x0000
 #define CHIP_8_PROGRAM_START    0x0200
 #define CHIP_8_DISPLAY_START    0x0F00
+#define CHIP_8_DISPLAY_SIZE     0x00FF
 
 #define CHIP_8_OPCODE_CLEAR     0x00E0  // 0x00E0
 #define CHIP_8_OPCODE_RET       0x00EE  // 0x00EE
@@ -87,8 +88,8 @@ void emulator_lifecycle_init(void **appstate, int argc, char *argv[])
         {
             printf("\n");
         }
-        printf("%02x", chip_8.program[offset + 1]);
         printf("%02x", chip_8.program[offset]);
+        printf("%02x", chip_8.program[offset + 1]);
         printf(" ");
     }
 
@@ -97,19 +98,20 @@ void emulator_lifecycle_init(void **appstate, int argc, char *argv[])
 
 void emulator_lifecycle_iterate(void *appstate)
 {
-    uint8_t byte_1 = chip_8.memory[chip_8.pc++];
     uint8_t byte_2 = chip_8.memory[chip_8.pc++];
+    uint8_t byte_1 = chip_8.memory[chip_8.pc++];
     uint16_t opcode = (byte_2 << 8) | byte_1;
 
     switch (opcode)
     {
         case CHIP_8_OPCODE_CLEAR: {
-            return;
+            memset(chip_8.display, 0, CHIP_8_DISPLAY_SIZE);
+            break;
         }
 
         case CHIP_8_OPCODE_RET: {
             chip_8.pc = chip_8.stack[--chip_8.sp];
-            return;
+            break;
         }
     }
 
@@ -130,10 +132,7 @@ void emulator_lifecycle_iterate(void *appstate)
 
         case CHIP_8_OPCODE_EQNN: {
             uint8_t x = byte_2 & 0x0F;
-            if (chip_8.rg[x] == byte_1)
-            {
-                chip_8.pc += 2;
-            }
+            if (chip_8.rg[x] == byte_1) chip_8.pc += 2;
             break;
         }
 
@@ -177,20 +176,42 @@ void emulator_lifecycle_iterate(void *appstate)
         case CHIP_8_OPCODE_DISP: {
             uint8_t x = byte_2 & 0x0F;
             uint8_t y = byte_1 >> 4;
+            uint8_t n = byte_1 & 0x0F;
 
-            uint8_t xv = chip_8.rg[x];
-            uint8_t yv = chip_8.rg[y];
+            uint8_t xv = chip_8.rg[x] % RENDER_WIDTH;
+            uint8_t yv = chip_8.rg[y] % RENDER_HEIGHT;
+ 
+            for (uint8_t i = 0; i < n; i++)
+            {
+                uint8_t byte = chip_8.memory[chip_8.I + i];
+                uint8_t *row = chip_8.display + ((yv + i) * (RENDER_WIDTH / 8));
+                uint8_t div = xv / 8;
+                uint8_t rem = xv - (div * 8);
+                row[div] ^= byte >> rem;
+                row[div + 1] ^= byte << (8 - rem);
+            }
             break;
         }
     }
 
     emulator_display_clear();
 
-    for (uint16_t x = 0; x < RENDER_WIDTH; x++)
+    for (uint8_t y = 0; y < RENDER_HEIGHT; y++)
     {
-        for (uint16_t y = 0; y < RENDER_HEIGHT; y++)
+        uint8_t index = y * (RENDER_WIDTH / 8);
+        uint8_t *row = chip_8.display + index;
+
+        for (uint8_t x = 0; x < RENDER_WIDTH; x++)
         {
-            emulator_display_draw_pixel(x, y, x + y, x * y, x - y);
+            uint8_t div = x / 8;
+            uint8_t mod = 0x80 >> (x % 8);
+            uint8_t res = row[div] & mod;
+            if (res)
+            {
+                emulator_display_draw_pixel(x, y, 0xFF, 0xFF, 0xFF);
+            } else {
+                emulator_display_draw_pixel(x, y, 0, 0, 0);
+            }
         }
     }
 
