@@ -7,6 +7,11 @@
 #include <emulator/lifecycle.h>
 #include <emulator/display.h>
 
+#define BYTE_COUNT              8       // Byte size in bits
+#define NYBL_COUNT              4       // Half byte size in bits
+#define BYTE_0X0F_MASK          0x0F
+#define WORD_0X0FFF_MASK        0x0FFF
+
 #define CHIP_8_MEMORY_SIZE      0x1000
 #define CHIP_8_FONT_START       0x0000
 #define CHIP_8_PROGRAM_START    0x0200
@@ -100,7 +105,7 @@ void emulator_lifecycle_iterate(void *appstate)
 {
     uint8_t byte_2 = chip_8.memory[chip_8.pc++];
     uint8_t byte_1 = chip_8.memory[chip_8.pc++];
-    uint16_t opcode = (byte_2 << 8) | byte_1;
+    uint16_t opcode = (byte_2 << BYTE_COUNT) | byte_1;
 
     switch (opcode)
     {
@@ -118,65 +123,65 @@ void emulator_lifecycle_iterate(void *appstate)
     switch ((opcode & 0xF000))
     {
         case CHIP_8_OPCODE_JUMP: {
-            uint16_t NNN = opcode & 0x0FFF;
+            uint16_t NNN = opcode & WORD_0X0FFF_MASK;
             chip_8.pc = NNN;
             break;
         }
 
         case CHIP_8_OPCODE_CALL: {
-            uint16_t NNN = opcode & 0x0FFF;
+            uint16_t NNN = opcode & WORD_0X0FFF_MASK;
             chip_8.stack[chip_8.sp++] = chip_8.pc;
             chip_8.pc = NNN;
             break;
         }
 
         case CHIP_8_OPCODE_EQNN: {
-            uint8_t x = byte_2 & 0x0F;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
             if (chip_8.rg[x] == byte_1) chip_8.pc += 2;
             break;
         }
 
         case CHIP_8_OPCODE_NENN: {
-            uint8_t x = byte_2 & 0x0F;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
             if (chip_8.rg[x] != byte_1) chip_8.pc += 2;
             break;
         }
 
         case CHIP_8_OPCODE_EQXY: {
-            uint8_t x = byte_2 & 0x0F;
-            uint8_t y = byte_1 >> 4;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t y = byte_1 >> NYBL_COUNT;
             if (chip_8.rg[x] == chip_8.rg[y]) chip_8.pc += 2;
             break;
         }
 
         case CHIP_8_OPCODE_MOVX: {
-            uint8_t x = byte_2 & 0x0F;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
             chip_8.rg[x] = byte_1;
             break;
         }
 
         case CHIP_8_OPCODE_INCX: {
-            uint8_t x = byte_2 & 0x0F;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
             chip_8.rg[x] += byte_1;
             break;
         }
 
         case CHIP_8_OPCODE_MOVR: {
-            uint8_t x = byte_2 & 0x0F;
-            uint8_t y = byte_1 >> 4;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t y = byte_1 >> NYBL_COUNT;
             chip_8.rg[x] = chip_8.rg[y];
             break;
         }
 
         case CHIP_8_OPCODE_MOVI: {
-            chip_8.I = opcode & 0x0FFF;
+            chip_8.I = opcode & WORD_0X0FFF_MASK;
             break;
         }
 
         case CHIP_8_OPCODE_DISP: {
-            uint8_t x = byte_2 & 0x0F;
-            uint8_t y = byte_1 >> 4;
-            uint8_t n = byte_1 & 0x0F;
+            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t y = byte_1 >> NYBL_COUNT;
+            uint8_t n = byte_1 & BYTE_0X0F_MASK;
 
             uint8_t xv = chip_8.rg[x] % RENDER_WIDTH;
             uint8_t yv = chip_8.rg[y] % RENDER_HEIGHT;
@@ -184,11 +189,19 @@ void emulator_lifecycle_iterate(void *appstate)
             for (uint8_t i = 0; i < n; i++)
             {
                 uint8_t byte = chip_8.memory[chip_8.I + i];
-                uint8_t *row = chip_8.display + ((yv + i) * (RENDER_WIDTH / 8));
-                uint8_t div = xv / 8;
-                uint8_t rem = xv - (div * 8);
-                row[div] ^= byte >> rem;
-                row[div + 1] ^= byte << (8 - rem);
+
+                uint8_t row_offset = (yv + i) * (RENDER_WIDTH / BYTE_COUNT);
+                uint8_t *row = chip_8.display + row_offset;
+
+                uint8_t column_offset = xv / BYTE_COUNT;
+                uint8_t next_column_offset = column_offset + 1;
+
+                uint8_t bit_padding = xv - (column_offset * BYTE_COUNT);
+                row[column_offset] ^= byte >> bit_padding;
+
+                if (next_column_offset * BYTE_COUNT < RENDER_WIDTH) {
+                    row[next_column_offset] ^= byte << (BYTE_COUNT - bit_padding);
+                }
             }
             break;
         }
@@ -198,15 +211,16 @@ void emulator_lifecycle_iterate(void *appstate)
 
     for (uint8_t y = 0; y < RENDER_HEIGHT; y++)
     {
-        uint8_t index = y * (RENDER_WIDTH / 8);
-        uint8_t *row = chip_8.display + index;
+        uint8_t row_offset = y * (RENDER_WIDTH / BYTE_COUNT);
+        uint8_t *row = chip_8.display + row_offset;
 
         for (uint8_t x = 0; x < RENDER_WIDTH; x++)
         {
-            uint8_t div = x / 8;
-            uint8_t mod = 0x80 >> (x % 8);
-            uint8_t res = row[div] & mod;
-            if (res)
+            uint8_t column_offset = x / BYTE_COUNT;
+            uint8_t bit_mask = 0x80 >> (x % BYTE_COUNT);
+            uint8_t is_bit_on = row[column_offset] & bit_mask;
+
+            if (is_bit_on)
             {
                 emulator_display_draw_pixel(x, y, 0xFF, 0xFF, 0xFF);
             } else {
