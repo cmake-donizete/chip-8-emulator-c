@@ -18,6 +18,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
+    if (!SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "60"))
+    {
+        SDL_Log("Couldn't set framerate: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+
     if (!SDL_CreateWindowAndRenderer(
             "Chip 8 Emulator",
             WINDOW_WIDTH,
