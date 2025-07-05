@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -84,7 +85,10 @@ void emulator_lifecycle_init(void **appstate, int argc, char *argv[])
     int fd;
     size_t readed;
 
-    fd = open("../rom/ibmlogo.ch8", O_RDONLY);
+    fd = open(argv[1], O_RDONLY);
+
+    if (fd < 0) exit(EXIT_FAILURE);
+
     readed = read(fd, chip_8.program, CHIP_8_MEMORY_SIZE - CHIP_8_PROGRAM_START);
 
     for (size_t offset = 0; offset < readed; offset += 2)
