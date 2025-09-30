@@ -78,7 +78,7 @@ static inline void chip_8_memory_init()
     memcpy(chip_8.font, FONT, sizeof(FONT));
 }
 
-void emulator_lifecycle_init(void **appstate, int argc, char *argv[])
+void emulator_lifecycle_init(int argc, char *argv[])
 {
     chip_8_memory_init();
 
@@ -105,7 +105,7 @@ void emulator_lifecycle_init(void **appstate, int argc, char *argv[])
     close(fd);
 }
 
-void emulator_lifecycle_iterate(void *appstate)
+void emulator_lifecycle_iterate()
 {
     uint8_t byte_2 = chip_8.memory[chip_8.pc++];
     uint8_t byte_1 = chip_8.memory[chip_8.pc++];
@@ -236,6 +236,6 @@ void emulator_lifecycle_iterate(void *appstate)
     }
 }
 
-void emulator_lifecycle_quit(void *appstate)
+void emulator_lifecycle_quit()
 {
 }

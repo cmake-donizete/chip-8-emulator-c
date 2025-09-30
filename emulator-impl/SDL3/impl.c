@@ -10,7 +10,7 @@ static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *texture;
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
+SDL_AppResult SDL_AppInit(void **, int argc, char *argv[])
 {
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
@@ -42,7 +42,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         RENDER_HEIGHT,
         SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
-    emulator_lifecycle_init(appstate, argc, argv);
+    emulator_lifecycle_init(argc, argv);
 
     return SDL_APP_CONTINUE;
 }
@@ -58,13 +58,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    emulator_lifecycle_iterate(appstate);
+    emulator_lifecycle_iterate();
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
-    emulator_lifecycle_quit(appstate);
+    emulator_lifecycle_quit();
 }
 
 void emulator_display_clear()
