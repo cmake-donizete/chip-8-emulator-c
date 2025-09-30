@@ -10,8 +10,6 @@
 
 #define BYTE_COUNT              8       // Byte size in bits
 #define NYBL_COUNT              4       // Half byte size in bits
-#define BYTE_0X0F_MASK          0x0F
-#define WORD_0X0FFF_MASK        0x0FFF
 
 #define CHIP_8_MEMORY_SIZE      0x1000
 #define CHIP_8_FONT_START       0x0000
@@ -127,65 +125,65 @@ void emulator_lifecycle_iterate()
     switch ((opcode & 0xF000))
     {
         case CHIP_8_OPCODE_JUMP: {
-            uint16_t NNN = opcode & WORD_0X0FFF_MASK;
+            uint16_t NNN = opcode & 0x0FFF;
             chip_8.pc = NNN;
             break;
         }
 
         case CHIP_8_OPCODE_CALL: {
-            uint16_t NNN = opcode & WORD_0X0FFF_MASK;
+            uint16_t NNN = opcode & 0x0FFF;
             chip_8.stack[chip_8.sp++] = chip_8.pc;
             chip_8.pc = NNN;
             break;
         }
 
         case CHIP_8_OPCODE_EQNN: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             if (chip_8.rg[x] == byte_1) chip_8.pc += 2;
             break;
         }
 
         case CHIP_8_OPCODE_NENN: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             if (chip_8.rg[x] != byte_1) chip_8.pc += 2;
             break;
         }
 
         case CHIP_8_OPCODE_EQXY: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             uint8_t y = byte_1 >> NYBL_COUNT;
             if (chip_8.rg[x] == chip_8.rg[y]) chip_8.pc += 2;
             break;
         }
 
         case CHIP_8_OPCODE_MOVX: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             chip_8.rg[x] = byte_1;
             break;
         }
 
         case CHIP_8_OPCODE_INCX: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             chip_8.rg[x] += byte_1;
             break;
         }
 
         case CHIP_8_OPCODE_MOVR: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             uint8_t y = byte_1 >> NYBL_COUNT;
             chip_8.rg[x] = chip_8.rg[y];
             break;
         }
 
         case CHIP_8_OPCODE_MOVI: {
-            chip_8.I = opcode & WORD_0X0FFF_MASK;
+            chip_8.I = opcode & 0x0FFF;
             break;
         }
 
         case CHIP_8_OPCODE_DISP: {
-            uint8_t x = byte_2 & BYTE_0X0F_MASK;
+            uint8_t x = byte_2 & 0x0F;
             uint8_t y = byte_1 >> NYBL_COUNT;
-            uint8_t n = byte_1 & BYTE_0X0F_MASK;
+            uint8_t n = byte_1 & 0x0F;
 
             uint8_t xv = chip_8.rg[x] % RENDER_WIDTH;
             uint8_t yv = chip_8.rg[y] % RENDER_HEIGHT;
