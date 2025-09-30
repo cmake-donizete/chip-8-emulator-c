@@ -103,6 +103,31 @@ void emulator_lifecycle_init(int argc, char *argv[])
     close(fd);
 }
 
+static inline void chip_8_draw_display()
+{
+    emulator_display_clear();
+    for (uint8_t y = 0; y < RENDER_HEIGHT; y++)
+    {
+        uint8_t row_offset = y * RENDER_WIDTH / BYTE_BITS_COUNT;
+        uint8_t *row = chip_8.display + row_offset;
+
+        for (uint8_t x = 0; x < RENDER_WIDTH; x++)
+        {
+            uint8_t column_offset = x / BYTE_BITS_COUNT;
+            uint8_t bit_mask = 0x80 >> (x % BYTE_BITS_COUNT);
+            uint8_t is_bit_on = row[column_offset] & bit_mask;
+
+            if (is_bit_on)
+            {
+                emulator_display_draw_pixel(x, y, 0xFF, 0xFF, 0xFF);
+            } else {
+                emulator_display_draw_pixel(x, y, 0, 0, 0);
+            }
+        }
+    }
+    emulator_display_refresh();
+}
+
 void emulator_lifecycle_iterate()
 {
     uint8_t byte_2 = chip_8.memory[chip_8.pc++];
@@ -206,29 +231,7 @@ void emulator_lifecycle_iterate()
                 }
             }
 
-            draw: {
-                emulator_display_clear();
-                for (uint8_t y = 0; y < RENDER_HEIGHT; y++)
-                {
-                    uint8_t row_offset = y * (RENDER_WIDTH / BYTE_BITS_COUNT);
-                    uint8_t *row = chip_8.display + row_offset;
-
-                    for (uint8_t x = 0; x < RENDER_WIDTH; x++)
-                    {
-                        uint8_t column_offset = x / BYTE_BITS_COUNT;
-                        uint8_t bit_mask = 0x80 >> (x % BYTE_BITS_COUNT);
-                        uint8_t is_bit_on = row[column_offset] & bit_mask;
-
-                        if (is_bit_on)
-                        {
-                            emulator_display_draw_pixel(x, y, 0xFF, 0xFF, 0xFF);
-                        } else {
-                            emulator_display_draw_pixel(x, y, 0, 0, 0);
-                        }
-                    }
-                }
-                emulator_display_refresh();
-            }
+            chip_8_draw_display();
             break;
         }
     }
